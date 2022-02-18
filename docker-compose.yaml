@@ -1,0 +1,54 @@
+version: '3.9'
+services:
+    server:
+        image: nginx:stable-alpine
+        ports:
+            - 8000:80
+        volumes:
+            - ./project:/var/www/html
+            - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro 
+        depends_on:
+            - mysql
+            - php
+    php:
+        build:
+            context: ./dockfiles
+            dockerfile: php.dockerfile
+        volumes:
+            - ./project:/var/www/html:delegated
+            
+    mysql:
+        image: mysql:5.7.37
+        volumes:
+            - datadb:/var/lib/mysql
+        environment:
+            MYSQL_DATABASE: laravel
+            MYSQL_ROOT_PASSWORD: root
+        restart: always
+        ports:
+            - 33066:3306
+        command: ['--character-set-server=utf8','--collation-server=utf8_unicode_ci']
+    composer:
+        build:
+            context: ./dockfiles
+            dockerfile: composer.dockerfile
+        volumes:
+            - ./project:/var/www/html
+        command: ['create-project', '--prefer-dist', 'laravel/laravel', '.']
+    artisan:
+        build:
+            context: ./dockfiles
+            dockerfile: php.dockerfile
+        volumes:
+            - ./project:/var/www/html
+        entrypoint: ['php','artisan']
+        
+    npm:
+        image:  node 
+        volumes:
+                - ./project:/var/www/html
+        working_dir: /var/www/html
+        entrypoint: ['npm']
+        
+volumes:
+    datadb:
